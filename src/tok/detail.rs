@@ -22,14 +22,18 @@
  */
 pub struct Instruction {
     pub opcode: String,
-    pub operands: [Option<Operand>; 4],
+    pub operands: [Option<OperandWithSeg>; 4],
 }
 
-pub struct Operand {
+pub struct OperandWithSeg {
     pub seg: Option<Register>,
-    pub indirect: Option<Indirect>,
-    pub reg: Option<Register>,
-    pub imm: Option<u64>,
+    pub oper: Operand,
+}
+
+pub enum Operand {
+    Indirect(Indirect),
+    Reg(Register),
+    Imm(u64),
 }
 
 pub struct Indirect {
