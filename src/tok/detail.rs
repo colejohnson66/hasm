@@ -21,31 +21,31 @@
  * ============================================================================
  */
 pub struct Instruction {
-    opcode: String,
-    operands: [Option<Operand>; 4],
+    pub opcode: String,
+    pub operands: [Option<Operand>; 4],
 }
 
 pub struct Operand {
-    seg: Option<Register>,
-    indirect: Option<Indirect>,
-    reg: Option<Register>,
-    imm: Option<u64>,
+    pub seg: Option<Register>,
+    pub indirect: Option<Indirect>,
+    pub reg: Option<Register>,
+    pub imm: Option<u64>,
 }
 
 pub struct Indirect {
-    base: Option<Register>,
-    reg: Option<Register>,
-    scaled_reg: Option<Register>,
-    scale: u8,
-    displacement: i32, // TODO: u64?
+    pub base: Option<Register>,
+    pub reg: Option<Register>,
+    pub scaled_reg: Option<Register>,
+    pub scale: u8,
+    pub displacement: i32, // TODO: u64?
 }
 
 pub struct Register {
-    bits_width: u8,
-    reg: RegisterType,
-    flags: Option<AvxFlags>,
+    pub bits_width: u8,
+    pub reg: RegisterType,
+    pub flags: Option<AvxFlags>,
     // k0..7; {z}
-    mask: Option<(u8, bool)>,
+    pub mask: Option<(u8, bool)>,
 }
 
 pub enum AvxFlags {
@@ -115,22 +115,21 @@ pub enum RegisterType {
 }
 
 pub struct Directive {
-    directive: String,
+    pub directive: String,
     // TODO: values
 }
 
 pub struct AsmLine {
-    label: Option<String>,
-    instr: Option<Instruction>,
-    directive: Option<Directive>,
-    comment: Option<String>,
+    pub label: Option<String>,
+    pub instr: Option<Instruction>,
+    pub comment: Option<String>,
 }
 
 pub struct MacroLine {}
 
 pub struct DirectiveLine {
-    directive: String,
-    args: Vec<String>,
+    pub directive: String,
+    pub args: Vec<String>,
 }
 
 pub enum Line {

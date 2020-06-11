@@ -81,12 +81,32 @@ impl AsmTokenizer {
         // <AsmLine> ::
         //     opt<Label> opt<Instruction> opt<Comment>
 
-        unimplemented!();
+        let state = self.asm.state();
+
+        // match opt<Label>
+        let label = self.label();
+
+        // match opt<Instruction>
+        let instr = self.instruction();
+
+        // match opt<Comment>
+        let comment = self.comment();
+
+        if label.is_none() && instr.is_none() && comment.is_none() {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        Some(AsmLine {
+            label,
+            instr,
+            comment,
+        })
     }
 
     fn label(&mut self) -> Option<String> {
         // <Label> ::
-        //     rep<LabelChar> ":"
+        //     rep<LabelChar> ": "
         // <LabelChars> ::
         //     range['a'-'z']
         //     range['A'-'Z']
@@ -114,9 +134,12 @@ impl AsmTokenizer {
             }
         }
 
-        // match ":"
-        match self.asm.peek() {
-            Some(c) if c == ':' => return Some(val),
+        // match ": "
+        match self.asm.read() {
+            Some(':') => match self.asm.read() {
+                Some(' ') => return Some(val),
+                _ => (),
+            },
             _ => (),
         }
 
