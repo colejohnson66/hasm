@@ -148,10 +148,149 @@ impl AsmTokenizer {
     }
 
     fn instruction(&mut self) -> Option<Instruction> {
+        // <Instruction> ::
+        //     <Opcode>
+        //     <Opcode> optrep[" "] <Operand>
+        //     <Opcode> optrep[" "] <Operand> "," optrep[" "] <Operand>
+        //     <Opcode> optrep[" "] <Operand> "," optrep[" "] <Operand> "," optrep[" "] <Operand>
+        //     <Opcode> optrep[" "] <Operand> "," optrep[" "] <Operand> "," optrep[" "] <Operand> "," optrep[" "] <Operand>
+
+        // TODO: allow directives (such as `db` too)
+
+        let state = self.asm.state();
         unimplemented!();
     }
 
-    fn directive(&mut self) -> Option<Directive> {
+    fn opcode(&mut self) -> Option<String> {
+        unimplemented!();
+    }
+
+    fn operand(&mut self) -> Option<OperandWithSeg> {
+        // <Operand> ::
+        //     opt<SegmentPrefix> <Indirect>
+        //     opt<SegmentPrefix> <Register>
+        //     opt<SegmentPrefix> <Immediate>
+
+        let state = self.asm.state();
+
+        // match opt<SegmentPrefix>
+        let seg = self.segment_prefix();
+
+        // match <Indirect>
+        match self.indirect() {
+            Some(indirect) => {
+                return Some(OperandWithSeg {
+                    seg,
+                    oper: Operand::Indirect(indirect),
+                })
+            }
+            None => (),
+        }
+
+        // match <Register>
+        match self.register() {
+            Some(reg) => {
+                return Some(OperandWithSeg {
+                    seg,
+                    oper: Operand::Reg(reg),
+                })
+            }
+            None => (),
+        }
+
+        // match <Immediate>
+        match self.immediate() {
+            Some(imm) => {
+                return Some(OperandWithSeg {
+                    seg,
+                    oper: Operand::Imm(imm),
+                })
+            }
+            None => (),
+        }
+
+        self.asm.set_state(state);
+        None
+    }
+
+    fn segment_prefix(&mut self) -> Option<Register> {
+        // <SegmentPrefix> ::
+        //     <Segment> optrep[" "] ":" optrep[" "]
+        // <Segment> ::
+        //     caseinsensitive["cs"] // 0
+        //     caseinsensitive["ds"] // 1
+        //     caseinsensitive["ss"] // 2
+        //     caseinsensitive["es"] // 3
+        //     caseinsensitive["fs"] // 4
+        //     caseinsensitive["gs"] // 5
+
+        let state = self.asm.state();
+
+        // match <Segment>
+        let mut buf = ['\0'; 2];
+        if self.asm.read_multiple(&mut buf[..]) != 2 {
+            self.asm.set_state(state);
+            return None;
+        }
+        let seg: Option<u8> = match &buf.iter().collect::<String>().to_ascii_lowercase()[..] {
+            "cs" => Some(0),
+            "ds" => Some(1),
+            "ss" => Some(2),
+            "es" => Some(3),
+            "fs" => Some(4),
+            "gs" => Some(5),
+            _ => None,
+        };
+        if seg.is_none() {
+            self.asm.set_state(state);
+            return None;
+        }
+        let seg = RegisterType::Segment(seg.unwrap());
+
+        // match optrep[" "]
+        loop {
+            match self.asm.read() {
+                Some(' ') => continue,
+                _ => break,
+            }
+        }
+
+        // match ":"
+        match self.asm.read() {
+            Some(':') => (),
+            _ => {
+                self.asm.set_state(state);
+                return None;
+            }
+        }
+
+        // match optrep[" "]
+        loop {
+            match self.asm.read() {
+                Some(' ') => continue,
+                _ => break,
+            }
+        }
+
+        Some(Register {
+            bit_width: 0,
+            reg: seg,
+            flags: None,
+            mask: None,
+        })
+    }
+
+    fn indirect(&mut self) -> Option<Indirect> {
+        unimplemented!();
+    }
+
+    fn register(&mut self) -> Option<Register> {
+        unimplemented!();
+    }
+
+    fn immediate(&mut self) -> Option<i64> {
+        // <Immediate> ::
+        //      <Number>
         unimplemented!();
     }
 

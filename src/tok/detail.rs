@@ -33,7 +33,7 @@ pub struct OperandWithSeg {
 pub enum Operand {
     Indirect(Indirect),
     Reg(Register),
-    Imm(u64),
+    Imm(i64),
 }
 
 // [base + index*scale + disp]
@@ -45,7 +45,7 @@ pub struct Indirect {
 }
 
 pub struct Register {
-    pub bits_width: u8,
+    pub bit_width: u8, // set to 0 if size is irrelevant (such as with segments)
     pub reg: RegisterType,
     pub flags: Option<AvxFlags>,
     // k0..7; {z}
