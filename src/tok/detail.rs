@@ -36,12 +36,12 @@ pub enum Operand {
     Imm(u64),
 }
 
+// [base + index*scale + disp]
 pub struct Indirect {
     pub base: Option<Register>,
-    pub reg: Option<Register>,
-    pub scaled_reg: Option<Register>,
+    pub index: Option<Register>,
     pub scale: u8,
-    pub displacement: i32, // TODO: u64?
+    pub disp: i32, // TODO: i64?
 }
 
 pub struct Register {
