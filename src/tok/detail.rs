@@ -22,7 +22,7 @@
  */
 pub struct Instruction {
     pub opcode: String,
-    pub operands: Option<Vec<OperandWithSeg>>,
+    pub operands: Vec<OperandWithSeg>,
 }
 
 pub struct OperandWithSeg {

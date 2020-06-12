@@ -155,13 +155,11 @@ impl AsmTokenizer {
         // <Instruction> ::
         //     <Opcode>
         //     <Opcode> " " optrep[" "] <Operand>
-        //     <Opcode> " " optrep[" "] <Operand> "," optrep[" "] <Operand>
-        //     <Opcode> " " optrep[" "] <Operand> "," optrep[" "] <Operand> "," optrep[" "] <Operand>
-        //     <Opcode> " " optrep[" "] <Operand> "," optrep[" "] <Operand> "," optrep[" "] <Operand> "," optrep[" "] <Operand>
+        //     <Opcode> " " optrep[" "] <Operand> optrep[" "] "," optrep[" "] <Operand>
+        //     <Opcode> " " optrep[" "] <Operand> optrep[" "] "," optrep[" "] <Operand> optrep[" "] "," optrep[" "] <Operand>
+        //     <Opcode> " " optrep[" "] <Operand> optrep[" "] "," optrep[" "] <Operand> optrep[" "] "," optrep[" "] <Operand> optrep[" "] "," optrep[" "] <Operand>
 
         // TODO: allow directives (such as `db` too)
-
-        let state = self.asm.state();
 
         let opcode = self.opcode();
         if opcode.is_none() {
@@ -169,7 +167,102 @@ impl AsmTokenizer {
         }
         let opcode = opcode.unwrap();
 
-        unimplemented!();
+        // match " "
+        match self.asm.peek() {
+            Some(' ') => self.asm.consume(),
+            _ => {
+                return Some(Instruction {
+                    opcode,
+                    operands: vec![],
+                });
+            }
+        }
+
+        let mut operands: Vec<OperandWithSeg> = Vec::with_capacity(8);
+
+        // operand 1
+        let state = self.asm.state();
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+        // match <Operand>
+        match self.operand() {
+            Some(operand) => operands.push(operand),
+            None => {
+                self.asm.set_state(state);
+                return Some(Instruction { opcode, operands });
+            }
+        }
+
+        // operand 2
+        let state = self.asm.state();
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+        // match ","
+        match self.asm.peek() {
+            Some(',') => self.asm.consume(),
+            _ => {
+                self.asm.set_state(state);
+                return Some(Instruction { opcode, operands });
+            }
+        }
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+        // match <Operand>
+        match self.operand() {
+            Some(operand) => operands.push(operand),
+            None => {
+                self.asm.set_state(state);
+                return Some(Instruction { opcode, operands });
+            }
+        }
+
+        // operand 3
+        let state = self.asm.state();
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+        // match ","
+        match self.asm.peek() {
+            Some(',') => self.asm.consume(),
+            _ => {
+                self.asm.set_state(state);
+                return Some(Instruction { opcode, operands });
+            }
+        }
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+        // match <Operand>
+        match self.operand() {
+            Some(operand) => operands.push(operand),
+            None => {
+                self.asm.set_state(state);
+                return Some(Instruction { opcode, operands });
+            }
+        }
+
+        // operand 4
+        let state = self.asm.state();
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+        // match ","
+        match self.asm.peek() {
+            Some(',') => self.asm.consume(),
+            _ => {
+                self.asm.set_state(state);
+                return Some(Instruction { opcode, operands });
+            }
+        }
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+        // match <Operand>
+        match self.operand() {
+            Some(operand) => operands.push(operand),
+            None => {
+                self.asm.set_state(state);
+                return Some(Instruction { opcode, operands });
+            }
+        }
+
+        Some(Instruction { opcode, operands })
     }
 
     fn opcode(&mut self) -> Option<String> {
