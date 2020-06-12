@@ -565,6 +565,20 @@ impl AsmTokenizer {
     }
 
     fn register(&mut self) -> Option<Register> {
+        // <Register> ::
+        //     <GeneralPurposeRegister>
+        //     // TODO: rDX:rAX pair
+        //     <SegmentRegister>
+        //     <FlagsRegister>
+        //     <FloatingPointRegister>
+        //     <ControlRegister>
+        //     <DebugRegister>
+        //     <BoundRegister>
+        //     <MmxRegister>
+        //     <XmmRegister>
+        //     <YmmRegister>
+        //     <ZmmRegister>
+        //     <VsibRegister>
         unimplemented!();
     }
 
