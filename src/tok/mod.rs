@@ -415,7 +415,153 @@ impl AsmTokenizer {
     }
 
     fn indirect(&mut self) -> Option<Indirect> {
-        unimplemented!();
+        // NOTE: <Indirect> takes many forms; Ultimately, it is an expression
+        //   of the form  `[base+index*scale+disp]` where each value is
+        //   optional, but at least one register must be present. In addition,
+        //   optional whitespace may exist between each "block" (it is not
+        //   present here for readability).
+        // TODO: "[" <Register> "+" <Register> "+" <Number> "]" // Implied scale of 1
+        // TODO: This is not exhaustive
+        // <Indirect> ::
+        //     "[" <Register> "]"
+        //     "[" <Register> "+" <Register> "]"
+        //     "[" <Register> "+" <Register> "*" <Scale> "]"
+        //     "[" <Register> "+" <Register> "*" <Scale> "+" <Number> "]"
+        // <Scale> ::
+        //     oneOf["1", "2", "4", "8"]
+
+        let state = self.asm.state();
+
+        // match "["
+        match self.asm.peek() {
+            Some('[') => self.asm.consume(),
+            _ => return None,
+        }
+
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+
+        // match <Register>
+        let base = self.register();
+        if base.is_none() {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+
+        // match "]" or "+"
+        match self.asm.peek() {
+            Some(']') => {
+                return Some(Indirect {
+                    base,
+                    index: None,
+                    scale: 0,
+                    disp: 0,
+                })
+            }
+            Some('+') => (),
+            _ => {
+                self.asm.set_state(state);
+                return None;
+            }
+        }
+
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+
+        // match <Register>
+        let index = self.register();
+        if index.is_none() {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+
+        // match "]" or "*"
+        match self.asm.peek() {
+            Some(']') => {
+                return Some(Indirect {
+                    base,
+                    index,
+                    scale: 1, // implied
+                    disp: 0,
+                });
+            }
+            Some('*') => (),
+            _ => {
+                self.asm.set_state(state);
+                return None;
+            }
+        }
+
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+
+        // match <Scale>
+        let scale = match self.asm.peek() {
+            Some('1') => 1u8,
+            Some('2') => 2u8,
+            Some('4') => 4u8,
+            Some('8') => 8u8,
+            _ => {
+                self.asm.set_state(state);
+                return None;
+            }
+        };
+
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+
+        // match "]" or "+"
+        match self.asm.peek() {
+            Some(']') => {
+                return Some(Indirect {
+                    base,
+                    index,
+                    scale,
+                    disp: 0,
+                });
+            }
+            Some('+') => (),
+            _ => {
+                self.asm.set_state(state);
+                return None;
+            }
+        }
+
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+
+        // match <Number>
+        let disp = self.i32();
+        if disp.is_none() {
+            self.asm.set_state(state);
+            return None;
+        }
+        let disp = disp.unwrap();
+
+        // match optrep[" "]
+        self.asm.consume_all(' ');
+
+        // match "]"
+        match self.asm.peek() {
+            Some(']') => (),
+            _ => {
+                self.asm.set_state(state);
+                return None;
+            }
+        }
+
+        Some(Indirect {
+            base,
+            index,
+            scale,
+            disp,
+        })
     }
 
     fn register(&mut self) -> Option<Register> {
@@ -437,6 +583,10 @@ impl AsmTokenizer {
     }
 
     fn directive_line(&mut self) -> Option<DirectiveLine> {
+        unimplemented!();
+    }
+
+    fn i32(&mut self) -> Option<i32> {
         unimplemented!();
     }
 }
