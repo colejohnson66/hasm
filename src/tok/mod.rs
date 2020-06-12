@@ -134,6 +134,10 @@ impl AsmTokenizer {
             }
         }
 
+        if val.len() == 0 {
+            return None;
+        }
+
         // match ": "
         match self.asm.read() {
             Some(':') => match self.asm.read() {
@@ -150,19 +154,56 @@ impl AsmTokenizer {
     fn instruction(&mut self) -> Option<Instruction> {
         // <Instruction> ::
         //     <Opcode>
-        //     <Opcode> optrep[" "] <Operand>
-        //     <Opcode> optrep[" "] <Operand> "," optrep[" "] <Operand>
-        //     <Opcode> optrep[" "] <Operand> "," optrep[" "] <Operand> "," optrep[" "] <Operand>
-        //     <Opcode> optrep[" "] <Operand> "," optrep[" "] <Operand> "," optrep[" "] <Operand> "," optrep[" "] <Operand>
+        //     <Opcode> " " optrep[" "] <Operand>
+        //     <Opcode> " " optrep[" "] <Operand> "," optrep[" "] <Operand>
+        //     <Opcode> " " optrep[" "] <Operand> "," optrep[" "] <Operand> "," optrep[" "] <Operand>
+        //     <Opcode> " " optrep[" "] <Operand> "," optrep[" "] <Operand> "," optrep[" "] <Operand> "," optrep[" "] <Operand>
 
         // TODO: allow directives (such as `db` too)
 
         let state = self.asm.state();
+
+        let opcode = self.opcode();
+        if opcode.is_none() {
+            return None;
+        }
+        let opcode = opcode.unwrap();
+
         unimplemented!();
     }
 
     fn opcode(&mut self) -> Option<String> {
-        unimplemented!();
+        // <Opcode> ::
+        //     rep<OpcodeChars>
+        // <OpcodeChars> ::
+        //     range['a'-'z']
+        //     range['A'-'Z']
+        //     range['0'-'9']
+        // NOTE: <Opcode> is case insensitive; return all lowercase
+
+        let state = self.asm.state();
+
+        // match rep<LabelChar>
+        let mut val: String = "".into();
+        loop {
+            match self.asm.peek() {
+                Some(c) => {
+                    if c.is_ascii_alphanumeric() {
+                        self.asm.consume();
+                        val.push(c.to_ascii_lowercase());
+                    } else {
+                        break;
+                    }
+                }
+                None => break,
+            }
+        }
+
+        if val.len() == 0 {
+            return None;
+        }
+
+        Some(val)
     }
 
     fn operand(&mut self) -> Option<OperandWithSeg> {
