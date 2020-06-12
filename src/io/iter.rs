@@ -237,6 +237,35 @@ impl LineOffsetIterator {
         buf.len()
     }
 
+    pub fn consume_all(&mut self, c: char) -> usize {
+        let mut count: usize = 0;
+
+        loop {
+            match self.peek() {
+                Some(ch) if c == ch => {
+                    count += 1;
+                    self.consume();
+                }
+                _ => return count,
+            }
+        }
+    }
+
+    pub fn consume_until(&mut self, c: char) -> usize {
+        let mut count: usize = 0;
+
+        loop {
+            match self.peek() {
+                Some(ch) if c == ch => return count,
+                Some(_) => {
+                    count += 1;
+                    self.consume();
+                }
+                None => return count,
+            }
+        }
+    }
+
     /// Gets the line and line offset states.
     /// Used to reset to a known position when tokenizing
     pub fn state(&self) -> (usize, usize) {
