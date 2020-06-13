@@ -81,7 +81,7 @@ pub enum RegisterType {
      * 6 - sil | dh
      * 7 - dil | bh
      */
-    GeneralPurpose(u8),
+    GeneralPurpose(String),
     // rdx:rax
     RdxRaxPair,
     /* In order: (TODO: correct?)
