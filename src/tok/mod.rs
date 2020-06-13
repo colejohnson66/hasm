@@ -348,6 +348,7 @@ impl AsmTokenizer {
     }
 
     fn segment_prefix(&mut self) -> Option<Register> {
+        // TODO: use <SegmentRegister>
         // <SegmentPrefix> ::
         //     <Segment> optrep[" "] ":" optrep[" "]
         // <Segment> ::
@@ -575,16 +576,217 @@ impl AsmTokenizer {
         //     <DebugRegister>
         //     <BoundRegister>
         //     <MmxRegister>
-        //     <XmmRegister>
-        //     <YmmRegister>
-        //     <ZmmRegister>
+        //     <AvxRegister>
         //     <VsibRegister>
+        unimplemented!();
+    }
+
+    fn general_purpose_register(&mut self) -> Option<Register> {
+        // All case insensitive; for clarity, `caseInsensitive[...]` is ommited
+        // <GeneralPurposeRegister> ::
+        //     oneOf["al", "ah", "ax", "eax", "rax"]
+        //     oneOf["cl", "ch", "cx", "ecx", "rcx"]
+        //     oneOf["dl", "dh", "dx", "edx", "rdx"]
+        //     oneOf["bl", "bh", "bx", "ebx", "rbx"]
+        //     oneOf["spl", "sph", "sp", "esp", "rsp"]
+        //     oneOf["bpl", "bph", "bp", "ebp", "rbp"]
+        //     oneOf["sil", "sih", "si", "esi", "rsi"]
+        //     oneOf["dil", "dih", "di", "edi", "rdi"]
+        //     oneOf["r8b", "r8w", "r8d", "r8"]
+        //     oneOf["r9b", "r9w", "r9d", "r9"]
+        //     oneOf["r10b", "r10w", "r10d", "r10"]
+        //     oneOf["r11b", "r11w", "r11d", "r11"]
+        //     oneOf["r12b", "r12w", "r12d", "r12"]
+        //     oneOf["r13b", "r13w", "r13d", "r13"]
+        //     oneOf["r14b", "r14w", "r14d", "r14"]
+        //     oneOf["r15b", "r15w", "r15d", "r15"]
+        unimplemented!();
+    }
+
+    fn segment_register(&mut self) -> Option<Register> {
+        // <SegmentRegister> ::
+        //     caseInsensitive["cs"]
+        //     caseInsensitive["ds"]
+        //     caseInsensitive["ss"]
+        //     caseInsensitive["es"]
+        //     caseInsensitive["fs"]
+        //     caseInsensitive["gs"]
+
+        let state = self.asm.state();
+
+        let mut buf = ['\0'; 2];
+        if self.asm.read_multiple(&mut buf) != 2 {
+            self.asm.set_state(state);
+            return None;
+        }
+        let buf = buf.iter().collect::<String>().to_ascii_lowercase();
+
+        let seg: Option<u8> = match &buf[..] {
+            "cs" => Some(0),
+            "ds" => Some(1),
+            "ss" => Some(2),
+            "es" => Some(3),
+            "fs" => Some(4),
+            "gs" => Some(5),
+            _ => None,
+        };
+        if seg.is_none() {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        Some(Register {
+            bit_width: 0,
+            reg: RegisterType::Segment(seg.unwrap()),
+            flags: None,
+            mask: None,
+        })
+    }
+
+    fn flags_register(&mut self) -> Option<Register> {
+        unimplemented!();
+    }
+
+    fn floating_point_register(&mut self) -> Option<Register> {
+        // <FloatingPointRegister> ::
+        //     caseInsensitive["st"] "(" range["0"-"7"] ")"
+        //     caseInsensitive["st"] range["0"-"7"]
+
+        let state = self.asm.state();
+
+        let mut buf = ['\0'; 2];
+        if self.asm.read_multiple(&mut buf) != 2 {
+            self.asm.set_state(state);
+            return None;
+        }
+        let buf = buf.iter().collect::<String>().to_ascii_lowercase();
+        if &buf[..] != "st" {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        // match "("
+        let paren = match self.asm.peek() {
+            Some('(') => {
+                self.asm.consume();
+                true
+            }
+            _ => false,
+        };
+
+        // match range["0"-"7"]
+        let reg: u8 = match self.asm.read() {
+            Some('0') => 0,
+            Some('1') => 1,
+            Some('2') => 2,
+            Some('3') => 3,
+            Some('4') => 4,
+            Some('5') => 5,
+            Some('6') => 6,
+            Some('7') => 7,
+            _ => {
+                self.asm.set_state(state);
+                return None;
+            }
+        };
+
+        // match ")" if needed
+        if paren {
+            match self.asm.read() {
+                Some(')') => (),
+                _ => {
+                    self.asm.set_state(state);
+                    return None;
+                }
+            }
+        }
+
+        Some(Register {
+            bit_width: 0,
+            reg: RegisterType::FloatingPoint(reg),
+            flags: None,
+            mask: None,
+        })
+    }
+
+    fn control_register(&mut self) -> Option<Register> {
+        // <ControlRegister> ::
+        //     caseInsensitive["cr"] range["0"-"15"]
+
+        let state = self.asm.state();
+
+        let mut buf = ['\0'; 2];
+        if self.asm.read_multiple(&mut buf) != 2 {
+            self.asm.set_state(state);
+            return None;
+        }
+        let buf = buf.iter().collect::<String>().to_ascii_lowercase();
+        if &buf[..] != "cr" {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        // TODO: get register number
+        unimplemented!();
+    }
+
+    fn debug_register(&mut self) -> Option<Register> {
+        // <ControlRegister> ::
+        //     caseInsensitive["dr"] range["0"-"15"]
+
+        let state = self.asm.state();
+
+        let mut buf = ['\0'; 2];
+        if self.asm.read_multiple(&mut buf) != 2 {
+            self.asm.set_state(state);
+            return None;
+        }
+        let buf = buf.iter().collect::<String>().to_ascii_lowercase();
+        if &buf[..] != "dr" {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        // TODO: get register number
+        unimplemented!();
+    }
+
+    fn bound_register(&mut self) -> Option<Register> {
+        // <ControlRegister> ::
+        //     caseInsensitive["bnd"] range["0"-"3"]
+
+        let state = self.asm.state();
+
+        let mut buf = ['\0'; 3];
+        if self.asm.read_multiple(&mut buf) != 3 {
+            self.asm.set_state(state);
+            return None;
+        }
+        let buf = buf.iter().collect::<String>().to_ascii_lowercase();
+        if &buf[..] != "bnd" {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        // TODO: get register number
+        unimplemented!();
+    }
+
+    fn mmx_register(&mut self) -> Option<Register> {
+        unimplemented!();
+    }
+
+    fn avx_register(&mut self) -> Option<Register> {
+        unimplemented!();
+    }
+
+    fn vsib_register(&mut self) -> Option<Register> {
         unimplemented!();
     }
 
     fn immediate(&mut self) -> Option<i64> {
         // <Immediate> ::
-        //      <Number>
+        //      <i64>
         unimplemented!();
     }
 
