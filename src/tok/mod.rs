@@ -582,7 +582,7 @@ impl AsmTokenizer {
     }
 
     fn general_purpose_register(&mut self) -> Option<Register> {
-        // All case insensitive; for clarity, `caseInsensitive[...]` is ommited
+        // All case insensitive; for clarity, `caseInsensitive[...]` is omitted
         // <GeneralPurposeRegister> ::
         //     oneOf["al", "ah", "ax", "eax", "rax"]
         //     oneOf["cl", "ch", "cx", "ecx", "rcx"]
@@ -644,7 +644,42 @@ impl AsmTokenizer {
     }
 
     fn flags_register(&mut self) -> Option<Register> {
-        unimplemented!();
+        // <FlagsRegister> ::
+        //     caseInsensitive["flags"]
+        //     caseInsensitive["eflags"]
+        //     caseInsensitive["rflags"]
+
+        let state = self.asm.state();
+
+        let mut buf = ['\0'; 5];
+        if self.asm.read_multiple(&mut buf[..]) != 5 {
+            self.asm.set_state(state);
+            return None;
+        }
+        let buf = buf.iter().collect::<String>().to_ascii_lowercase();
+        let size: Option<u8> = match &buf[..] {
+            "flags" => Some(16),
+            "eflag" => match self.asm.read() {
+                Some('s') => Some(32),
+                _ => None,
+            },
+            "rflag" => match self.asm.read() {
+                Some('s') => Some(64),
+                _ => None,
+            },
+            _ => None,
+        };
+        if size.is_none() {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        Some(Register {
+            bit_width: size.unwrap(),
+            reg: RegisterType::Flags,
+            flags: None,
+            mask: None,
+        })
     }
 
     fn floating_point_register(&mut self) -> Option<Register> {
@@ -715,6 +750,7 @@ impl AsmTokenizer {
 
         let state = self.asm.state();
 
+        // match caseInsensitive["cr"]
         let mut buf = ['\0'; 2];
         if self.asm.read_multiple(&mut buf) != 2 {
             self.asm.set_state(state);
@@ -726,8 +762,34 @@ impl AsmTokenizer {
             return None;
         }
 
-        // TODO: get register number
-        unimplemented!();
+        // match range["0"-"15"]
+        let reg_num = match self.asm.read() {
+            Some('0') => Some(0),
+            Some('1') => match self.asm.peek() {
+                Some(c) if c >= '0' && c <= '5' => {
+                    self.asm.read();
+                    let digit = c as u8 - '0' as u8;
+                    Some(10 + digit)
+                }
+                _ => Some(1),
+            },
+            Some(c) if c >= '2' && c <= '9' => {
+                let digit = c as u8 - '0' as u8;
+                Some(digit)
+            }
+            _ => None,
+        };
+        if reg_num.is_none() {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        Some(Register {
+            bit_width: 0,
+            reg: RegisterType::Control(reg_num.unwrap()),
+            flags: None,
+            mask: None,
+        })
     }
 
     fn debug_register(&mut self) -> Option<Register> {
@@ -736,6 +798,7 @@ impl AsmTokenizer {
 
         let state = self.asm.state();
 
+        // match caseInsensitive["dr"]
         let mut buf = ['\0'; 2];
         if self.asm.read_multiple(&mut buf) != 2 {
             self.asm.set_state(state);
@@ -747,16 +810,43 @@ impl AsmTokenizer {
             return None;
         }
 
-        // TODO: get register number
-        unimplemented!();
+        // match range["0"-"15"]
+        let reg_num = match self.asm.read() {
+            Some('0') => Some(0),
+            Some('1') => match self.asm.peek() {
+                Some(c) if c >= '0' && c <= '5' => {
+                    self.asm.read();
+                    let digit = c as u8 - '0' as u8;
+                    Some(10 + digit)
+                }
+                _ => Some(1),
+            },
+            Some(c) if c >= '2' && c <= '9' => {
+                let digit = c as u8 - '0' as u8;
+                Some(digit)
+            }
+            _ => None,
+        };
+        if reg_num.is_none() {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        Some(Register {
+            bit_width: 0,
+            reg: RegisterType::Debug(reg_num.unwrap()),
+            flags: None,
+            mask: None,
+        })
     }
 
     fn bound_register(&mut self) -> Option<Register> {
-        // <ControlRegister> ::
+        // <BoundRegister> ::
         //     caseInsensitive["bnd"] range["0"-"3"]
 
         let state = self.asm.state();
 
+        // match caseInsensitive["bnd"]
         let mut buf = ['\0'; 3];
         if self.asm.read_multiple(&mut buf) != 3 {
             self.asm.set_state(state);
@@ -768,12 +858,68 @@ impl AsmTokenizer {
             return None;
         }
 
-        // TODO: get register number
-        unimplemented!();
+        // match range["0"-"3"]
+        let reg_num: Option<u8> = match self.asm.read() {
+            Some('0') => Some(0),
+            Some('1') => Some(1),
+            Some('2') => Some(2),
+            Some('3') => Some(3),
+            _ => None,
+        };
+        if reg_num.is_none() {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        Some(Register {
+            bit_width: 0,
+            reg: RegisterType::Bound(reg_num.unwrap()),
+            flags: None,
+            mask: None,
+        })
     }
 
     fn mmx_register(&mut self) -> Option<Register> {
-        unimplemented!();
+        // <MmxRegister> ::
+        //     caseInsensitive["mm"] range["0"-"7"]
+
+        let state = self.asm.state();
+
+        // match caseInsensitive["mm"]
+        let mut buf = ['\0'; 2];
+        if self.asm.read_multiple(&mut buf) != 2 {
+            self.asm.set_state(state);
+            return None;
+        }
+        let buf = buf.iter().collect::<String>().to_ascii_lowercase();
+        if &buf[..] != "mm" {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        // match range["0"-"3"]
+        let reg_num: Option<u8> = match self.asm.read() {
+            Some('0') => Some(0),
+            Some('1') => Some(1),
+            Some('2') => Some(2),
+            Some('3') => Some(3),
+            Some('4') => Some(4),
+            Some('5') => Some(5),
+            Some('6') => Some(6),
+            Some('7') => Some(7),
+            _ => None,
+        };
+        if reg_num.is_none() {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        Some(Register {
+            bit_width: 0,
+            reg: RegisterType::Mmx(reg_num.unwrap()),
+            flags: None,
+            mask: None,
+        })
     }
 
     fn avx_register(&mut self) -> Option<Register> {
@@ -803,6 +949,10 @@ impl AsmTokenizer {
     }
 
     fn i32(&mut self) -> Option<i32> {
+        unimplemented!();
+    }
+
+    fn i64(&mut self) -> Option<i64> {
         unimplemented!();
     }
 }
