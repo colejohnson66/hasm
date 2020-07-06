@@ -664,7 +664,135 @@ impl AsmTokenizer {
         //     oneOf["r13b", "r13w", "r13d", "r13"]
         //     oneOf["r14b", "r14w", "r14d", "r14"]
         //     oneOf["r15b", "r15w", "r15d", "r15"]
-        unimplemented!();
+
+        let state = self.asm.state();
+
+        // longest GPR name is 4 characters long
+        let mut buf = ['\0'; 4];
+        if self.asm.read_multiple(&mut buf) != 4 {
+            // TODO: should we be failing here?
+            self.asm.set_state(state);
+            return None;
+        }
+        let buf = buf.iter().collect::<String>().to_ascii_lowercase();
+
+        // match 4 character long ones first
+        let reg: Option<(&'static str, u8)> = match &buf[..] {
+            "r10b" => Some(("r10b", 8)),
+            "r10w" => Some(("r10w", 16)),
+            "r10d" => Some(("r10d", 32)),
+            "r11b" => Some(("r11b", 8)),
+            "r11w" => Some(("r11w", 16)),
+            "r11d" => Some(("r11d", 32)),
+            "r12b" => Some(("r12b", 8)),
+            "r12w" => Some(("r12w", 16)),
+            "r12d" => Some(("r12d", 32)),
+            "r13b" => Some(("r13b", 8)),
+            "r13w" => Some(("r13w", 16)),
+            "r13d" => Some(("r13d", 32)),
+            "r14b" => Some(("r14b", 8)),
+            "r14w" => Some(("r14w", 16)),
+            "r14d" => Some(("r14d", 32)),
+            "r15b" => Some(("r15b", 8)),
+            "r15w" => Some(("r15w", 16)),
+            "r15d" => Some(("r15d", 32)),
+            _ => None,
+        };
+        if reg.is_some() {
+            let reg = reg.unwrap();
+            return Some(Register {
+                bit_width: reg.1.into(),
+                reg: RegisterType::GeneralPurpose(reg.0.into()),
+                flags: None,
+                mask: None,
+            });
+        }
+
+        // match 3 character long ones
+        let reg: Option<(&'static str, u8)> = match &buf[..3] {
+            "bph" => Some(("bph", 8)),
+            "bpl" => Some(("bpl", 8)),
+            "dih" => Some(("dih", 8)),
+            "dil" => Some(("dil", 8)),
+            "eax" => Some(("eax", 32)),
+            "ebp" => Some(("ebp", 32)),
+            "ebx" => Some(("ebx", 32)),
+            "ecx" => Some(("ecx", 32)),
+            "edi" => Some(("edi", 32)),
+            "edx" => Some(("edx", 32)),
+            "esi" => Some(("esi", 32)),
+            "esp" => Some(("esp", 32)),
+            "r8b" => Some(("r8b", 8)),
+            "r8w" => Some(("r8w", 16)),
+            "r8d" => Some(("r8d", 32)),
+            "r9b" => Some(("r9b", 8)),
+            "r9w" => Some(("r9w", 16)),
+            "r9d" => Some(("r9d", 32)),
+            "r10" => Some(("r10", 64)),
+            "r11" => Some(("r11", 64)),
+            "r12" => Some(("r12", 64)),
+            "r13" => Some(("r13", 64)),
+            "r14" => Some(("r14", 64)),
+            "r15" => Some(("r15", 64)),
+            "rax" => Some(("rax", 32)),
+            "rbp" => Some(("rbp", 32)),
+            "rbx" => Some(("rbx", 32)),
+            "rcx" => Some(("rcx", 32)),
+            "rdi" => Some(("rdi", 32)),
+            "rdx" => Some(("rdx", 32)),
+            "rsi" => Some(("rsi", 32)),
+            "rsp" => Some(("rsp", 32)),
+            "sih" => Some(("sih", 8)),
+            "sil" => Some(("sil", 8)),
+            "sph" => Some(("sph", 8)),
+            "spl" => Some(("spl", 8)),
+            _ => None,
+        };
+        if reg.is_some() {
+            let reg = reg.unwrap();
+            return Some(Register {
+                bit_width: reg.1.into(),
+                reg: RegisterType::GeneralPurpose(reg.0.into()),
+                flags: None,
+                mask: None,
+            });
+        }
+
+        // finally, match 2 character long ones
+        let reg: Option<(&'static str, u8)> = match &buf[..2] {
+            "ah" => Some(("ah", 8)),
+            "al" => Some(("al", 8)),
+            "ax" => Some(("ax", 16)),
+            "bh" => Some(("bh", 8)),
+            "bl" => Some(("bl", 8)),
+            "bp" => Some(("bp", 16)),
+            "bx" => Some(("bx", 16)),
+            "ch" => Some(("ch", 8)),
+            "cl" => Some(("cl", 8)),
+            "cx" => Some(("cx", 16)),
+            "dh" => Some(("dh", 8)),
+            "di" => Some(("di", 8)),
+            "dl" => Some(("dl", 8)),
+            "dx" => Some(("dx", 16)),
+            "r8" => Some(("r8", 64)),
+            "r9" => Some(("r9", 64)),
+            "si" => Some(("si", 16)),
+            "sp" => Some(("sp", 16)),
+            _ => None,
+        };
+        if reg.is_some() {
+            let reg = reg.unwrap();
+            return Some(Register {
+                bit_width: reg.1.into(),
+                reg: RegisterType::GeneralPurpose(reg.0.into()),
+                flags: None,
+                mask: None,
+            });
+        }
+
+        // no match; reset
+        self.asm.set_state(state);
+        None
     }
 
     fn segment_register(&mut self) -> Option<Register> {
