@@ -578,7 +578,71 @@ impl AsmTokenizer {
         //     <MmxRegister>
         //     <AvxRegister>
         //     <VsibRegister>
-        unimplemented!();
+
+        // Don't need to save state as all fn will reset state upon failure
+
+        // match <GeneralPurposeRegister>
+        let val = self.general_purpose_register();
+        if val.is_some() {
+            return val;
+        }
+
+        // TODO: rDX:rAX pair (check before GPR)
+
+        // match <SegmentRegister>
+        let val = self.segment_register();
+        if val.is_some() {
+            return val;
+        }
+        // match <FlagsRegister>
+        let val = self.flags_register();
+        if val.is_some() {
+            return val;
+        }
+
+        // match <FloatingPointRegister>
+        let val = self.floating_point_register();
+        if val.is_some() {
+            return val;
+        }
+
+        // match <ControlRegister>
+        let val = self.control_register();
+        if val.is_some() {
+            return val;
+        }
+
+        // match <DebugRegister>
+        let val = self.debug_register();
+        if val.is_some() {
+            return val;
+        }
+
+        // match <BoundRegister>
+        let val = self.bound_register();
+        if val.is_some() {
+            return val;
+        }
+
+        // match <MmxRegister>
+        let val = self.mmx_register();
+        if val.is_some() {
+            return val;
+        }
+
+        // match <AvxRegister>
+        let val = self.avx_register();
+        if val.is_some() {
+            return val;
+        }
+
+        // match <VsibRegister>
+        let val = self.vsib_register();
+        if val.is_some() {
+            return val;
+        }
+
+        None
     }
 
     fn general_purpose_register(&mut self) -> Option<Register> {
