@@ -315,7 +315,7 @@ impl AsmTokenizer {
             Some(indirect) => {
                 return Some(OperandWithSeg {
                     seg,
-                    oper: Operand::Indirect(indirect),
+                    operand: Operand::Indirect(indirect),
                 })
             }
             None => (),
@@ -326,7 +326,7 @@ impl AsmTokenizer {
             Some(reg) => {
                 return Some(OperandWithSeg {
                     seg,
-                    oper: Operand::Reg(reg),
+                    operand: Operand::Reg(reg),
                 })
             }
             None => (),
@@ -337,7 +337,7 @@ impl AsmTokenizer {
             Some(imm) => {
                 return Some(OperandWithSeg {
                     seg,
-                    oper: Operand::Imm(imm),
+                    operand: Operand::Imm(imm),
                 })
             }
             None => (),
@@ -577,7 +577,7 @@ impl AsmTokenizer {
         //     <BoundRegister>
         //     <MmxRegister>
         //     <AvxRegister>
-        //     <VsibRegister>
+        //     <VSibRegister>
 
         // Don't need to save state as all fn will reset state upon failure
 
@@ -636,7 +636,7 @@ impl AsmTokenizer {
             return val;
         }
 
-        // match <VsibRegister>
+        // match <VSibRegister>
         let val = self.vsib_register();
         if val.is_some() {
             return val;
@@ -1105,7 +1105,7 @@ impl AsmTokenizer {
 
         Some(Register {
             bit_width: 0,
-            reg: RegisterType::Vsib(reg_num.unwrap()),
+            reg: RegisterType::VSib(reg_num.unwrap()),
             flags: None,
             mask: None,
         })

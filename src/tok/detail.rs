@@ -27,7 +27,7 @@ pub struct Instruction {
 
 pub struct OperandWithSeg {
     pub seg: Option<Register>,
-    pub oper: Operand,
+    pub operand: Operand,
 }
 
 pub enum Operand {
@@ -53,8 +53,8 @@ pub struct Register {
 }
 
 pub enum AvxFlags {
-    EmbeddedRounding,     // {er} (implies {sae})
-    SupressAllExceptions, // {sae}
+    EmbeddedRounding,      // {er} (implies {sae})
+    SuppressAllExceptions, // {sae}
 }
 
 pub enum RegisterType {
@@ -66,7 +66,7 @@ pub enum RegisterType {
      * 4 - rsp: stack pointer
      * 5 - rbp: base pointer
      * 6 - rsi: source index
-     * 7 - rdi: desination index
+     * 7 - rdi: destination index
      * 8 - r8-r15: x86-64 extended registers
      *
      * NOTE: In long mode, the order for
@@ -110,7 +110,7 @@ pub enum RegisterType {
     // ZMM0..31
     Avx(u8),
     // VR0..15
-    Vsib(u8),
+    VSib(u8),
     // TODO: BNDCFGU and BNDSTATUS?
     // TODO: XCR0?
     // TODO: CET registers?
