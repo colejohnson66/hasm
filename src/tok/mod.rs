@@ -352,12 +352,12 @@ impl AsmTokenizer {
         // <SegmentPrefix> ::
         //     <Segment> optrep[" "] ":" optrep[" "]
         // <Segment> ::
-        //     caseinsensitive["cs"] // 0
-        //     caseinsensitive["ds"] // 1
-        //     caseinsensitive["ss"] // 2
-        //     caseinsensitive["es"] // 3
-        //     caseinsensitive["fs"] // 4
-        //     caseinsensitive["gs"] // 5
+        //     caseInsensitive["cs"] // 0
+        //     caseInsensitive["ds"] // 1
+        //     caseInsensitive["ss"] // 2
+        //     caseInsensitive["es"] // 3
+        //     caseInsensitive["fs"] // 4
+        //     caseInsensitive["gs"] // 5
 
         let state = self.asm.state();
 
@@ -657,7 +657,7 @@ impl AsmTokenizer {
             return None;
         }
         let buf = buf.iter().collect::<String>().to_ascii_lowercase();
-        let size: Option<u8> = match &buf[..] {
+        let size: Option<u16> = match &buf[..] {
             "flags" => Some(16),
             "eflag" => match self.asm.read() {
                 Some('s') => Some(32),
@@ -923,17 +923,135 @@ impl AsmTokenizer {
     }
 
     fn avx_register(&mut self) -> Option<Register> {
-        unimplemented!();
+        // <AvxRegister> ::
+        //     caseInsensitive["xmm"] range["0"-"31"]
+        //     caseInsensitive["ymm"] range["0"-"31"]
+        //     caseInsensitive["zmm"] range["0"-"31"]
+
+        let state = self.asm.state();
+
+        // match caseInsensitive["xmm"]
+        // match caseInsensitive["ymm"]
+        // match caseInsensitive["zmm"]
+        let mut buf = ['\0'; 3];
+        if self.asm.read_multiple(&mut buf) != 3 {
+            self.asm.set_state(state);
+            return None;
+        }
+        let buf = buf.iter().collect::<String>().to_ascii_lowercase();
+        let size: u16 = match &buf[..] {
+            "xmm" => 128,
+            "ymm" => 256,
+            "zmm" => 512,
+            _ => {
+                self.asm.set_state(state);
+                return None;
+            }
+        };
+
+        // match range["0"-"31"]
+        let reg_num = match self.asm.read() {
+            Some('0') => 0,
+            Some('1') => match self.asm.peek() {
+                Some(c) if c >= '0' && c <= '9' => {
+                    self.asm.read();
+                    let digit = c as u8 - '0' as u8;
+                    10 + digit
+                }
+                _ => 1,
+            },
+            Some('2') => match self.asm.peek() {
+                Some(c) if c >= '0' && c <= '9' => {
+                    self.asm.read();
+                    let digit = c as u8 - '0' as u8;
+                    10 + digit
+                }
+                _ => 2,
+            },
+            Some('3') => match self.asm.peek() {
+                Some('0') => {
+                    self.asm.read();
+                    30
+                }
+                Some('1') => {
+                    self.asm.read();
+                    31
+                }
+                _ => 3,
+            },
+            Some('4') => 4,
+            Some('5') => 5,
+            Some('6') => 6,
+            Some('7') => 7,
+            Some('8') => 8,
+            Some('9') => 9,
+            _ => {
+                self.asm.set_state(state);
+                return None;
+            }
+        };
+
+        Some(Register {
+            bit_width: size,
+            reg: RegisterType::Avx(reg_num),
+            flags: None,
+            mask: None,
+        })
     }
 
     fn vsib_register(&mut self) -> Option<Register> {
-        unimplemented!();
+        // <VsibRegister> ::
+        //     caseInsensitive["vr"] range["0"-"15"]
+
+        let state = self.asm.state();
+
+        // match caseInsensitive["vr"]
+        let mut buf = ['\0'; 2];
+        if self.asm.read_multiple(&mut buf) != 2 {
+            self.asm.set_state(state);
+            return None;
+        }
+        let buf = buf.iter().collect::<String>().to_ascii_lowercase();
+        if &buf[..] != "vr" {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        // match range["0"-"15"]
+        let reg_num = match self.asm.read() {
+            Some('0') => Some(0),
+            Some('1') => match self.asm.peek() {
+                Some(c) if c >= '0' && c <= '5' => {
+                    self.asm.read();
+                    let digit = c as u8 - '0' as u8;
+                    Some(10 + digit)
+                }
+                _ => Some(1),
+            },
+            Some(c) if c >= '2' && c <= '9' => {
+                let digit = c as u8 - '0' as u8;
+                Some(digit)
+            }
+            _ => None,
+        };
+        if reg_num.is_none() {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        Some(Register {
+            bit_width: 0,
+            reg: RegisterType::Vsib(reg_num.unwrap()),
+            flags: None,
+            mask: None,
+        })
     }
 
     fn immediate(&mut self) -> Option<i64> {
         // <Immediate> ::
         //      <i64>
-        unimplemented!();
+
+        self.i64()
     }
 
     fn comment(&mut self) -> Option<String> {
@@ -949,10 +1067,152 @@ impl AsmTokenizer {
     }
 
     fn i32(&mut self) -> Option<i32> {
-        unimplemented!();
+        // <i32> ::
+        //     range[-2147483648, 2147483647]
+        //     caseInsensitive[range[-0x80000000, 0x7FFFFFFF]]
+
+        let state = self.asm.state();
+
+        let negative = match self.asm.peek() {
+            Some('-') => true,
+            Some(c) if c >= '0' && c <= '9' => false,
+            _ => {
+                //self.asm.set_state(state);
+                return None;
+            }
+        };
+        self.asm.consume();
+
+        let is_hex = match self.asm.peek() {
+            Some('x') | Some('X') => {
+                self.asm.consume();
+                true
+            }
+            _ => false,
+        };
+
+        let mut val: u128 = 0; // use u128 for headroom
+        loop {
+            if is_hex {
+                match self.asm.peek() {
+                    Some(c) if c >= '0' && c <= '9' => {
+                        self.asm.consume();
+                        val *= 16;
+                        val += c as u128 - '0' as u128;
+                    }
+                    Some(c) if c >= 'a' && c <= 'f' => {
+                        self.asm.consume();
+                        val *= 16;
+                        val += c as u128 - 'a' as u128;
+                    }
+                    Some(c) if c >= 'A' && c <= 'F' => {
+                        self.asm.consume();
+                        val *= 16;
+                        val += c as u128 - 'A' as u128;
+                    }
+                    _ => break,
+                }
+            } else {
+                match self.asm.peek() {
+                    Some(c) if c >= '0' && c <= '9' => {
+                        self.asm.consume();
+                        val *= 10;
+                        val += c as u128 - '0' as u128;
+                    }
+                    _ => break,
+                }
+            }
+        }
+
+        if negative && val > 0x80000000 {
+            self.asm.set_state(state);
+            return None;
+        }
+        if !negative && val > 0x7FFFFFFF {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        let mut val: i64 = val as i64;
+        if negative {
+            val *= -1;
+        }
+
+        Some(val as i32)
     }
 
     fn i64(&mut self) -> Option<i64> {
-        unimplemented!();
+        // <i64> ::
+        //     range[-9223372036854775808, 9223372036854775807]
+        //     caseInsensitive[range[-0x8000000000000000, 0x7FFFFFFFFFFFFFFF]]
+
+        let state = self.asm.state();
+
+        let negative = match self.asm.peek() {
+            Some('-') => true,
+            Some(c) if c >= '0' && c <= '9' => false,
+            _ => {
+                //self.asm.set_state(state);
+                return None;
+            }
+        };
+        self.asm.consume();
+
+        let is_hex = match self.asm.peek() {
+            Some('x') | Some('X') => {
+                self.asm.consume();
+                true
+            }
+            _ => false,
+        };
+
+        let mut val: u128 = 0; // use u128 for headroom
+        loop {
+            if is_hex {
+                match self.asm.peek() {
+                    Some(c) if c >= '0' && c <= '9' => {
+                        self.asm.consume();
+                        val *= 16;
+                        val += c as u128 - '0' as u128;
+                    }
+                    Some(c) if c >= 'a' && c <= 'f' => {
+                        self.asm.consume();
+                        val *= 16;
+                        val += c as u128 - 'a' as u128;
+                    }
+                    Some(c) if c >= 'A' && c <= 'F' => {
+                        self.asm.consume();
+                        val *= 16;
+                        val += c as u128 - 'A' as u128;
+                    }
+                    _ => break,
+                }
+            } else {
+                match self.asm.peek() {
+                    Some(c) if c >= '0' && c <= '9' => {
+                        self.asm.consume();
+                        val *= 10;
+                        val += c as u128 - '0' as u128;
+                    }
+                    _ => break,
+                }
+            }
+        }
+
+        if negative && val > 0x8000000000000000 {
+            self.asm.set_state(state);
+            return None;
+        }
+        if !negative && val > 0x7FFFFFFFFFFFFFFF {
+            self.asm.set_state(state);
+            return None;
+        }
+
+        let mut val: i128 = val as i128;
+        if negative {
+            val *= -1;
+        }
+
+        Some(val as i64)
     }
 }

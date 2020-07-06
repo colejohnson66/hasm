@@ -45,7 +45,7 @@ pub struct Indirect {
 }
 
 pub struct Register {
-    pub bit_width: u8, // set to 0 if size is irrelevant (such as with segments)
+    pub bit_width: u16, // set to 0 if size is irrelevant (such as with segments)
     pub reg: RegisterType,
     pub flags: Option<AvxFlags>,
     // k0..7; {z}
@@ -106,11 +106,9 @@ pub enum RegisterType {
     // MM0..7
     Mmx(u8),
     // XMM0..31
-    Xmm(u8),
     // YMM0..31
-    Ymm(u8),
     // ZMM0..31
-    Zmm(u8),
+    Avx(u8),
     // VR0..15
     Vsib(u8),
     // TODO: BNDCFGU and BNDSTATUS?
