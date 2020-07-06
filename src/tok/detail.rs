@@ -20,16 +20,19 @@
  *   hasm. If not, see <http://www.gnu.org/licenses/>.
  * ============================================================================
  */
+#[derive(Debug)]
 pub struct Instruction {
     pub opcode: String,
     pub operands: Vec<OperandWithSeg>,
 }
 
+#[derive(Debug)]
 pub struct OperandWithSeg {
     pub seg: Option<Register>,
     pub operand: Operand,
 }
 
+#[derive(Debug)]
 pub enum Operand {
     Indirect(Indirect),
     Reg(Register),
@@ -37,6 +40,7 @@ pub enum Operand {
 }
 
 // [base + index*scale + disp]
+#[derive(Debug)]
 pub struct Indirect {
     pub base: Option<Register>,
     pub index: Option<Register>,
@@ -44,6 +48,7 @@ pub struct Indirect {
     pub disp: i32, // TODO: i64?
 }
 
+#[derive(Debug)]
 pub struct Register {
     pub bit_width: u16, // set to 0 if size is irrelevant (such as with segments)
     pub reg: RegisterType,
@@ -52,11 +57,13 @@ pub struct Register {
     pub mask: Option<(u8, bool)>,
 }
 
+#[derive(Debug)]
 pub enum AvxFlags {
     EmbeddedRounding,      // {er} (implies {sae})
     SuppressAllExceptions, // {sae}
 }
 
+#[derive(Debug)]
 pub enum RegisterType {
     /* In order (note rbx is NOT idx 1)
      * 0 - rax: accumulator
@@ -116,24 +123,29 @@ pub enum RegisterType {
     // TODO: CET registers?
 }
 
+#[derive(Debug)]
 pub struct Directive {
     pub directive: String,
     // TODO: values
 }
 
+#[derive(Debug)]
 pub struct AsmLine {
     pub label: Option<String>,
     pub instr: Option<Instruction>,
     pub comment: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct MacroLine {}
 
+#[derive(Debug)]
 pub struct DirectiveLine {
     pub directive: String,
     pub args: Vec<String>,
 }
 
+#[derive(Debug)]
 pub enum Line {
     Asm(AsmLine),
     Macro(MacroLine),

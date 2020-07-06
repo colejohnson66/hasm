@@ -1,5 +1,8 @@
 {
     "cSpell.words": [
         "hasm"
-    ]
+    ],
+    "debug.allowBreakpointsEverywhere": true,
+    "editor.formatOnPaste": true,
+    "editor.formatOnSave": true
 }

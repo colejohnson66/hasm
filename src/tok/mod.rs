@@ -46,7 +46,7 @@ impl AsmTokenizer {
 }
 
 impl AsmTokenizer {
-    fn read_line(&mut self) -> Option<Line> {
+    pub fn read_line(&mut self) -> Option<Line> {
         // <Line> ::
         //     <AsmLine>
         //     <MacroLine>
@@ -1247,15 +1247,18 @@ impl AsmTokenizer {
     }
 
     fn comment(&mut self) -> Option<String> {
-        unimplemented!();
+        None
+        // unimplemented!();
     }
 
     fn macro_line(&mut self) -> Option<MacroLine> {
-        unimplemented!();
+        None
+        // unimplemented!();
     }
 
     fn directive_line(&mut self) -> Option<DirectiveLine> {
-        unimplemented!();
+        None
+        // unimplemented!();
     }
 
     fn i32(&mut self) -> Option<i32> {
