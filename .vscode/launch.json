@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(Windows) Launch",
+            "name": "(Windows) Debug Launch",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/target/debug/hasm",
+            "program": "${workspaceFolder}/target/debug/hasm.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

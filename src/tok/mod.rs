@@ -453,7 +453,7 @@ impl AsmTokenizer {
         self.asm.consume_all(' ');
 
         // match "]" or "+"
-        match self.asm.peek() {
+        match self.asm.read() {
             Some(']') => {
                 return Some(Indirect {
                     base,
@@ -483,7 +483,7 @@ impl AsmTokenizer {
         self.asm.consume_all(' ');
 
         // match "]" or "*"
-        match self.asm.peek() {
+        match self.asm.read() {
             Some(']') => {
                 return Some(Indirect {
                     base,
@@ -503,7 +503,7 @@ impl AsmTokenizer {
         self.asm.consume_all(' ');
 
         // match <Scale>
-        let scale = match self.asm.peek() {
+        let scale = match self.asm.read() {
             Some('1') => 1u8,
             Some('2') => 2u8,
             Some('4') => 4u8,
@@ -518,7 +518,7 @@ impl AsmTokenizer {
         self.asm.consume_all(' ');
 
         // match "]" or "+"
-        match self.asm.peek() {
+        match self.asm.read() {
             Some(']') => {
                 return Some(Indirect {
                     base,
@@ -549,7 +549,7 @@ impl AsmTokenizer {
         self.asm.consume_all(' ');
 
         // match "]"
-        match self.asm.peek() {
+        match self.asm.read() {
             Some(']') => (),
             _ => {
                 self.asm.set_state(state);
@@ -749,6 +749,8 @@ impl AsmTokenizer {
             _ => None,
         };
         if reg.is_some() {
+            self.asm.backtrack(); // read 4, but only needed 3
+
             let reg = reg.unwrap();
             return Some(Register {
                 bit_width: reg.1.into(),
@@ -781,6 +783,8 @@ impl AsmTokenizer {
             _ => None,
         };
         if reg.is_some() {
+            self.asm.backtrack_multiple(2); // read 4, but only needed 2
+
             let reg = reg.unwrap();
             return Some(Register {
                 bit_width: reg.1.into(),
